@@ -1,0 +1,60 @@
+diff --git a/node_modules/@nativescript/canvas/Canvas/index.windows.js b/node_modules/@nativescript/canvas/Canvas/index.windows.js
+index 4f132c1..947356d 100644
+--- a/node_modules/@nativescript/canvas/Canvas/index.windows.js
++++ b/node_modules/@nativescript/canvas/Canvas/index.windows.js
+@@ -261,7 +261,11 @@ export class Canvas extends NapiCanvas {
+                 this._handleEvents({ event: 'down', ptrId, x, y, isPrimary });
+                 break;
+             case 'Moved':
+-                this._handleEvents({ event: 'move', pointers: [{ ptrId, x, y, isPrimary }] });
++                // A mouse or touchpad hovering is not a touch: moves are reported between down and
++                // up only, as on iOS and Android.
++                if (this._down.has(ptrId)) {
++                    this._handleEvents({ event: 'move', pointers: [{ ptrId, x, y, isPrimary }] });
++                }
+                 break;
+             case 'Released':
+                 if (this._down.delete(ptrId)) {
+diff --git a/node_modules/@nativescript/canvas/WebGL/WebGLRenderingContext/index.js b/node_modules/@nativescript/canvas/WebGL/WebGLRenderingContext/index.js
+index 5d0006e..faf6e50 100644
+--- a/node_modules/@nativescript/canvas/WebGL/WebGLRenderingContext/index.js
++++ b/node_modules/@nativescript/canvas/WebGL/WebGLRenderingContext/index.js
+@@ -25,6 +25,10 @@ import { Helpers } from '../../helpers';
+ import { NAPI_HOST, POINTER_CONTEXT_HOST } from '../../platform';
+ import { imageAssetFor } from '../../platform/index';
+ import { isCanvasView, isOffscreenCanvas } from '../../Canvas/utils';
++/** An image, canvas, video, bitmap or ImageData: not pixels in a buffer, an offset or null. */
++function isTexImageSource(value) {
++    return !!value && typeof value === 'object' && !ArrayBuffer.isView(value) && !(value instanceof ArrayBuffer);
++}
+ var ContextType;
+ (function (ContextType) {
+     ContextType[ContextType["None"] = 0] = "None";
+@@ -643,7 +647,12 @@ export class WebGLRenderingContextBase extends WebGLRenderingCommon {
+         const length = arguments.length;
+         if (length === 9) {
+             pixels = fromSvgSource(pixels);
+-            if (pixels && typeof pixels.tagName === 'string' && (pixels.tagName === 'VID' || pixels.tagName === 'VIDEO') && pixels._video && typeof pixels._video.getCurrentFrame === 'function') {
++            if (NAPI_HOST && isTexImageSource(pixels)) {
++                // WebGL2's sized form with an image or canvas (PixiJS uploads text this way). Node-API hosts take
++                // sources in the unsized form only, which sizes the texture from the source as the sized one does.
++                this.texImage2D(target, level, internalformat, format, type ?? internalformat, pixels);
++            }
++            else if (pixels && typeof pixels.tagName === 'string' && (pixels.tagName === 'VID' || pixels.tagName === 'VIDEO') && pixels._video && typeof pixels._video.getCurrentFrame === 'function') {
+                 pixels._video.getCurrentFrame(this.native, this, target, level, internalformat, width, height);
+             }
+             else if (pixels && typeof pixels.getCurrentFrame === 'function') {
+@@ -786,7 +795,12 @@ export class WebGLRenderingContextBase extends WebGLRenderingCommon {
+     texSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels) {
+         const length = arguments.length;
+         if (length === 9) {
+-            if (pixels && typeof pixels.tagName === 'string' && (pixels.tagName === 'VID' || pixels.tagName === 'VIDEO') && pixels._video && typeof pixels._video.getCurrentFrame === 'function') {
++            pixels = fromSvgSource(pixels);
++            if (NAPI_HOST && isTexImageSource(pixels)) {
++                // As in texImage2D: sources go through the unsized form on Node-API hosts.
++                this.texSubImage2D(target, level, xoffset, yoffset, format, type, pixels);
++            }
++            else if (pixels && typeof pixels.tagName === 'string' && (pixels.tagName === 'VID' || pixels.tagName === 'VIDEO') && pixels._video && typeof pixels._video.getCurrentFrame === 'function') {
+                 pixels._video.getCurrentFrame(this.native, this, target, level, format, format);
+             }
+             else if (pixels && typeof pixels.getCurrentFrame === 'function') {

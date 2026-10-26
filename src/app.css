@@ -1,0 +1,202 @@
+/*
+ * Theme and utilities only: MasonKit's `View.preflight` (src/app.ts) does the
+ * reset natively. Tailwind's CSS preflight must stay out; its
+ * `[hidden] { display: none }` matches every view (core defines `hidden` on
+ * all of them, defaulting to false), which hides the whole Mason tree.
+ */
+@import 'tailwindcss/theme' layer(theme);
+@import 'tailwindcss/utilities' layer(utilities);
+
+/*
+ * NativeScript puts platform, device and appearance classes on the root view
+ * (.ns-ios, .ns-android, .ns-windows, .ns-phone, .ns-tablet, ...).
+ * `@media` based variants (sm:, md:, ...) are not available, so layouts are
+ * built from intrinsic sizing instead.
+ */
+@custom-variant ios (.ns-ios &);
+@custom-variant android (.ns-android &);
+@custom-variant windows (.ns-windows &);
+@custom-variant phone (.ns-phone &);
+@custom-variant tablet (.ns-tablet &);
+
+/*
+ * Hallow is always dark, whatever the system appearance. The palette:
+ * night (backgrounds), bone (text), blood, pumpkin, ecto (ghost light).
+ */
+@theme {
+  --color-night-950: #07040b;
+  --color-night-900: #0e0814;
+  --color-night-800: #171021;
+  --color-night-700: #241831;
+  --color-night-600: #352545;
+  --color-bone-50: #f4efe6;
+  --color-bone-200: #ddd3c2;
+  --color-bone-400: #a99d8c;
+  --color-bone-600: #6f6577;
+  --color-blood-400: #f05252;
+  --color-blood-500: #dc2626;
+  --color-blood-700: #8f1414;
+  --color-pumpkin-300: #fdba74;
+  --color-pumpkin-400: #fb923c;
+  --color-pumpkin-500: #f97316;
+  --color-ecto-300: #a7f3d0;
+  --color-ecto-400: #5eead4;
+  --color-ecto-500: #2dd4bf;
+}
+
+Page {
+  background-color: var(--color-night-950);
+}
+
+/*
+ * Fonts live in src/fonts. iOS finds them by family name, Android by file
+ * name, so each list names both.
+ */
+@utility font-creep {
+  font-family: Creepster, Creepster-Regular, serif;
+}
+
+@utility font-fell {
+  font-family: 'IM FELL English', IMFellEnglish-Regular, serif;
+}
+
+@utility font-fell-italic {
+  font-family: 'IM FELL English', IMFellEnglish-Italic, serif;
+  font-style: italic;
+}
+
+/* Shared building blocks. */
+@utility panel {
+  @apply rounded-3xl border border-night-700 bg-night-900/90 p-6;
+}
+
+@utility btn {
+  @apply rounded-2xl px-6 py-3 text-lg font-semibold;
+}
+
+@utility btn-blood {
+  @apply btn bg-blood-500 text-bone-50 active:bg-blood-700;
+}
+
+@utility btn-pumpkin {
+  @apply btn bg-pumpkin-500 text-night-950 active:bg-pumpkin-400;
+}
+
+@utility btn-ghost {
+  @apply btn border border-night-600 bg-night-800/80 text-bone-200 active:bg-night-700;
+}
+
+@utility chip {
+  @apply rounded-full bg-black/45 px-3 py-1 text-xs font-semibold text-bone-200;
+}
+
+@utility eyebrow {
+  @apply text-xs font-semibold uppercase text-pumpkin-400;
+}
+
+/* Tailwind's bg-linear-* emits `in oklab` interpolation, which native
+   gradient parsers don't understand, so gradients are spelled out. */
+@utility bg-crypt {
+  background-image: linear-gradient(180deg, #120a1a 0%, #07040b 100%);
+}
+
+@utility bg-fade-up {
+  background-image: linear-gradient(0deg, rgba(7, 4, 11, 0.95) 0%, rgba(7, 4, 11, 0) 100%);
+}
+
+@utility bg-fade-down {
+  background-image: linear-gradient(180deg, rgba(7, 4, 11, 0.85) 0%, rgba(7, 4, 11, 0) 100%);
+}
+
+@utility bg-blood-drip {
+  background-image: linear-gradient(180deg, #8f1414 0%, #3b0606 100%);
+}
+
+
+/*
+ * Keyframes. Core plays opacity and transforms natively; MasonKit takes over
+ * for its own views.
+ */
+@keyframes flicker {
+  0% { opacity: 1; }
+  8% { opacity: 0.55; }
+  10% { opacity: 1; }
+  42% { opacity: 1; }
+  44% { opacity: 0.3; }
+  47% { opacity: 0.95; }
+  49% { opacity: 0.45; }
+  52% { opacity: 1; }
+  100% { opacity: 1; }
+}
+
+@keyframes float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-8); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes breathe {
+  0% { opacity: 0.55; }
+  50% { opacity: 1; }
+  100% { opacity: 0.55; }
+}
+
+@keyframes shake {
+  0% { transform: translate(0, 0); }
+  15% { transform: translate(-10, 6); }
+  30% { transform: translate(9, -8); }
+  45% { transform: translate(-7, -4); }
+  60% { transform: translate(6, 7); }
+  75% { transform: translate(-3, 2); }
+  100% { transform: translate(0, 0); }
+}
+
+/* Lub-dub, then a pause: the call to action is alive. */
+@keyframes heartbeat {
+  0% { transform: scale(1); }
+  7% { transform: scale(1.035); }
+  14% { transform: scale(1); }
+  21% { transform: scale(1.025); }
+  30% { transform: scale(1); }
+  100% { transform: scale(1); }
+}
+
+@keyframes rise {
+  0% { opacity: 0; transform: translateY(24); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scare {
+  0% { opacity: 0; transform: scale(0.6); }
+  12% { opacity: 1; transform: scale(1.15); }
+  70% { opacity: 1; transform: scale(1.25); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+
+.flicker {
+  animation: flicker 4s ease-in-out infinite;
+}
+
+.float {
+  animation: float 3.2s ease-in-out infinite;
+}
+
+.breathe {
+  animation: breathe 2.4s ease-in-out infinite;
+}
+
+.shake {
+  animation: shake 0.45s ease-out 1;
+}
+
+.rise {
+  animation: rise 0.6s ease-out 1 forwards;
+}
+
+.heartbeat {
+  animation: heartbeat 1.7s ease-in-out infinite;
+}
+
+.scare {
+  animation: scare 0.7s ease-out 1 forwards;
+}

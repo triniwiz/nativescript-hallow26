@@ -1,0 +1,59 @@
+{
+  "name": "Hallow",
+  "main": "src/app.ts",
+  "version": "1.0.0",
+  "private": true,
+  "dependencies": {
+    "@formatjs/intl-segmenter": "^12.2.15",
+    "@nativescript/audio-context": "2.0.0-beta.0",
+    "@nativescript/canvas": "3.0.0-beta.6",
+    "@nativescript/canvas-pixi": "3.0.0-beta.6",
+    "@nativescript/canvas-polyfill": "3.0.0-beta.6",
+    "@nativescript/canvas-svg": "3.0.0-beta.6",
+    "@nativescript/canvas-three": "3.0.0-beta.6",
+    "@nativescript/core": "https://pkg.pr.new/@nativescript/core@abae298",
+    "@triniwiz/nativescript-masonkit": "^1.0.0-beta.128",
+    "@valor/nativescript-websockets": "^2.0.2",
+    "nativescript-vue": "3.1.2",
+    "pixi.js": "~8.5.2",
+    "three": "0.184.0",
+    "vue": "^3.5.44"
+  },
+  "devDependencies": {
+    "@nativescript/android": "9.1.1",
+    "@nativescript/ios": "9.1.0",
+    "@nativescript/tailwind": "~4.0.10",
+    "@nativescript/types": "~9.1.1",
+    "@nativescript/vite": "https://pkg.pr.new/@nativescript/vite@abae298",
+    "@nativescript/webpack": "https://pkg.pr.new/@nativescript/webpack@abae298",
+    "@nativescript/windows": "^1.0.0-beta.14",
+    "@types/node": "~26.5.0",
+    "@types/three": "~0.184.0",
+    "@vitejs/plugin-vue": "^6.0.9",
+    "@vitejs/plugin-vue-jsx": "^5.1.6",
+    "nativescript": "9.1.2-dev.2026-10-23-39896289431",
+    "patch-package": "^8.0.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^6.0.3",
+    "vue-tsc": "^3.3.11"
+  },
+  "overrides": {
+    "@nativescript/core": "https://pkg.pr.new/@nativescript/core@abae298",
+    "@nativescript/canvas": "3.0.0-beta.6",
+    "@nativescript/canvas-polyfill": "3.0.0-beta.6",
+    "@nativescript/canvas-svg": "3.0.0-beta.6",
+    "@nativescript/canvas-three": "3.0.0-beta.6",
+    "@nativescript/canvas-pixi": "3.0.0-beta.6",
+    "@nativescript/canvas-media": "3.0.0-beta.6",
+    "three": "0.184.0"
+  },
+  "scripts": {
+    "windows": "ns run windows",
+    "ios": "ns run ios",
+    "android": "ns run android",
+    "web": "vite --config vite.web.config.mts",
+    "build:web": "vite build --config vite.web.config.mts",
+    "clean": "ns clean",
+    "postinstall": "patch-package"
+  }
+}

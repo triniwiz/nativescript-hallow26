@@ -1,0 +1,6 @@
+// The canvas API without the <Canvas> view. A Worker imports it first.
+import '@nativescript/canvas/worker';
+import { serveDemo } from '../../canvas/worker-demo';
+import { seanceTable } from './table';
+
+serveDemo(seanceTable());

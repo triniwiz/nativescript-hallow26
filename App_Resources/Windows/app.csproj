@@ -1,0 +1,7 @@
+<Project>
+  <PropertyGroup>
+    <AppDisplayName>Hallow</AppDisplayName>
+    <AppDescription>Six rites before dawn</AppDescription>
+    <ApplicationManifest Condition="'$(ApplicationManifest)' == '' and Exists('$(MSBuildThisFileDirectory)app.manifest')">$(MSBuildThisFileDirectory)app.manifest</ApplicationManifest>
+  </PropertyGroup>
+</Project>

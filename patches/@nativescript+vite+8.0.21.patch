@@ -1,0 +1,110 @@
+diff --git a/node_modules/@nativescript/vite/hmr/server/deps-bundle.js b/node_modules/@nativescript/vite/hmr/server/deps-bundle.js
+index 60fa423..ef98da3 100644
+--- a/node_modules/@nativescript/vite/hmr/server/deps-bundle.js
++++ b/node_modules/@nativescript/vite/hmr/server/deps-bundle.js
+@@ -417,7 +417,7 @@ const NODE_BUILTIN_SET = new Set(NODE_EXTERNALS);
+  *    finishes and throws). Pass 2 registers every internalized file, keeping
+  *    per-URL identity for all of them.
+  */
+-function createDepsImportRoutingPlugin(projectRoot, workspaceRoot, platform, flavor) {
++function createDepsImportRoutingPlugin(projectRoot, workspaceRoot, platform, flavor, onDynamicImport) {
+     return {
+         name: 'ns-deps-import-routing',
+         setup(build) {
+@@ -442,6 +442,8 @@ function createDepsImportRoutingPlugin(projectRoot, workspaceRoot, platform, fla
+                     const key = depsRegistryKeyForFile(probe.path);
+                     if (!key)
+                         return probe;
++                    if (!NEVER_BUNDLED_KEY_RE.test(key))
++                        onDynamicImport?.(probe.path);
+                     return { path: `/ns/m/${key.replace(SCRIPT_EXT_RE, '')}`, external: true };
+                 }
+                 if (spec.startsWith('.') || spec.startsWith('/') || /^[A-Za-z]:[\\/]/.test(spec))
+@@ -720,12 +722,12 @@ export async function generateDepsBundle(options) {
+     // createNodeBuiltinPolyfillEsbuildPlugin bundles installed npm polyfills
+     // (buffer, events, ...) that would otherwise leak as bare builtin externals
+     // the device cannot resolve.
+-    const buildPlugins = () => [
++    const buildPlugins = (onDynamicImport) => [
+         createWebpackLoaderStubEsbuildPlugin(),
+         createNodeBuiltinPolyfillEsbuildPlugin(projectRoot, NODE_BUILTINS),
+         createNativeClassEsbuildPlugin(platform),
+         createVendorEsbuildPlugin(projectRoot),
+-        createDepsImportRoutingPlugin(projectRoot, workspaceRoot, String(platform), flavor),
++        createDepsImportRoutingPlugin(projectRoot, workspaceRoot, String(platform), flavor, onDynamicImport),
+         ...(flavor === 'angular' ? [createDepsAngularLinkerPlugin(projectRoot)] : []),
+         ...(flavor === 'solid' ? [createSolidJsxEsbuildPlugin(projectRoot)] : []),
+         createUnicodeRegexEsbuildPlugin(projectRoot),
+@@ -790,22 +792,58 @@ export async function generateDepsBundle(options) {
+         }
+     }
+     // The entries now resolve, so this build (recording each input's format) cannot fail.
+-    const discovery = await esbuild.build({ ...discoveryOptions(), metafile: true });
++    const dynamicTargets = new Set();
++    const discover = (absPaths, metafile) => esbuild.build({
++        ...sharedBuildOptions,
++        stdin: {
++            contents: absPaths.map((p) => `import ${JSON.stringify(p)};`).join('\n'),
++            resolveDir: projectRoot,
++            sourcefile: 'ns-deps-bundle-discovery.ts',
++            loader: 'ts',
++        },
++        metafile,
++        plugins: buildPlugins((absPath) => dynamicTargets.add(absPath)),
++    });
+     const entryKeySet = new Set(entries.map((e) => e.key));
+     const files = entries.map(({ key, absPath }) => ({ key, absPath }));
+-    for (const [input, meta] of Object.entries(discovery.metafile?.inputs ?? {})) {
+-        // A `:` other than a drive letter marks a plugin namespace, not a file.
+-        if (input === '<stdin>' || (input.includes(':') && !path.isAbsolute(input)) || !input.replace(/\\/g, '/').includes('node_modules/'))
+-            continue;
+-        const absPath = path.resolve(projectRoot, input);
+-        if (!existsSync(absPath))
+-            continue;
+-        const key = depsRegistryKeyForFile(absPath);
+-        if (!key || entryKeySet.has(key) || NEVER_BUNDLED_KEY_RE.test(key))
+-            continue;
+-        entryKeySet.add(key);
+-        // Evaluated on first use, as the dependency graph would, not up front.
+-        files.push({ key, absPath, lazy: true, cjs: meta.format !== 'esm' });
++    const register = (metafile) => {
++        for (const [input, meta] of Object.entries(metafile?.inputs ?? {})) {
++            // A `:` other than a drive letter marks a plugin namespace, not a file.
++            if (input === '<stdin>' || (input.includes(':') && !path.isAbsolute(input)) || !input.replace(/\\/g, '/').includes('node_modules/'))
++                continue;
++            const absPath = path.resolve(projectRoot, input);
++            if (!existsSync(absPath))
++                continue;
++            const key = depsRegistryKeyForFile(absPath);
++            if (!key || entryKeySet.has(key) || NEVER_BUNDLED_KEY_RE.test(key))
++                continue;
++            entryKeySet.add(key);
++            // Evaluated on first use, as the dependency graph would, not up front.
++            files.push({ key, absPath, lazy: true, cjs: meta.format !== 'esm' });
++        }
++    };
++    register((await discover(entries.map((e) => e.absPath), true)).metafile);
++    // Dynamic import() targets and their closures are registered too (NativeScript/NativeScript#11584).
++    const discoverOptional = async (targets) => {
++        try {
++            await discover(targets, false);
++        }
++        catch {
++            return false;
++        }
++        register((await discover(targets, true)).metafile);
++        return true;
++    };
++    const tried = new Set();
++    for (;;) {
++        const pending = [...dynamicTargets].filter((p) => !tried.has(p) && !entryKeySet.has(depsRegistryKeyForFile(p)));
++        if (!pending.length)
++            break;
++        pending.forEach((p) => tried.add(p));
++        if (!(await discoverOptional(pending)) && pending.length > 1) {
++            for (const target of pending)
++                await discoverOptional([target]);
++        }
+     }
+     const buildResult = await esbuild.build({
+         ...sharedBuildOptions,
